@@ -1,33 +1,43 @@
 <?php
-// PHP BACKDOOR SCAN
-// @author Alexandre Magnier - Exaland Concept
 function scanDirectory($dir) {
     $files = scandir($dir);
+    $suspectFiles = [];
     foreach ($files as $file) {
         if ($file != '.' && $file != '..') {
             $path = $dir . '/' . $file;
             if (is_dir($path)) {
-                scanDirectory($path);
+                $suspectFiles = array_merge($suspectFiles, scanDirectory($path));
             } else {
-                analyzeFile($path);
+                $suspectFiles = array_merge($suspectFiles, analyzeFile($path));
             }
         }
     }
+    return $suspectFiles;
 }
 
 function analyzeFile($file) {
-    // Analyse le contenu du fichier à la recherche de motifs suspects
+    $suspectFiles = [];
     $content = file_get_contents($file);
-    // Modifiez ici vos critères de détection des backdoors
     if (preg_match('/\beval\s*\(\s*[$\(]/i', $content) || preg_match('/\bsystem\s*\(\s*\$_[AGET]/i', $content)) {
-        echo "Suspect File Found : $file\n \n";
-        // Vous pouvez ajouter d'autres actions ici, comme la suppression du fichier ou la notification
+        $suspectFiles[] = $file;
     }
+    return $suspectFiles;
 }
 
 // Chemin du répertoire à scanner (modifiez-le selon votre besoin)
 $directory = __DIR__;
-echo "Starting PHP Backdoor Scanning...\n";
-scanDirectory($directory);
-echo "Scanning Finished.\n";
+echo "Start of analysis...\n";
+$suspectFiles = scanDirectory($directory);
+echo "Analysis completed.\n";
+
+// Affichage des résultats dans un tableau
+if (!empty($suspectFiles)) {
+    echo "<table border='1'><tr><th>Suspect Files</th></tr>";
+    foreach ($suspectFiles as $file) {
+        echo "<tr><td>$file</td></tr>";
+    }
+    echo "</table>";
+} else {
+    echo "Not Suspect File Found.";
+}
 ?>
